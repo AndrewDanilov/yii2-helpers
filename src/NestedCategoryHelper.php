@@ -21,8 +21,8 @@ class NestedCategoryHelper
 		if (static::$_groupedCategories === null) {
 			static::$_groupedCategories = [];
 			foreach ($categories as $category) {
-				if (property_exists($category, $parent_key)) {
-					static::$_groupedCategories[$category->getAttribute($parent_key)][$category->getPrimaryKey()] = $category;
+				if (isset($category->$parent_key)) {
+					static::$_groupedCategories[$category->$parent_key][$category->getPrimaryKey()] = $category;
 				}
 			}
 		}
