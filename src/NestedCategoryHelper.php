@@ -1,6 +1,7 @@
 <?php
 namespace andrewdanilov\helpers;
 
+use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 use yii\helpers\ArrayHelper;
 
@@ -12,17 +13,18 @@ class NestedCategoryHelper
 	private static $_groupedCategories = null;
 
 	/**
-	 * @param ActiveRecord[] $categories
+	 * @param ActiveQuery $categories
 	 * @param string $parent_key
 	 * @return null
 	 */
 	public static function getGroupedCategories($categories, $parent_key='parent_id')
 	{
 		if (static::$_groupedCategories === null) {
+			$categories = $categories->indexBy('id')->all();
 			static::$_groupedCategories = [];
-			foreach ($categories as $category) {
+			foreach ($categories as $category_id => $category) {
 				if (isset($category->$parent_key)) {
-					static::$_groupedCategories[$category->$parent_key][$category->getPrimaryKey()] = $category;
+					static::$_groupedCategories[$category->$parent_key][$category_id] = $category;
 				}
 			}
 		}
@@ -33,7 +35,7 @@ class NestedCategoryHelper
 	 * Возвращает псевдо-иерархический Dropdown-список
 	 * для использования в полях форм.
 	 *
-	 * @param ActiveRecord[] $categories
+	 * @param ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $parent_key
 	 * @param int $level
@@ -46,7 +48,7 @@ class NestedCategoryHelper
 			foreach ($grouped_categories[$parent_id] as $id => $category) {
 				$tree[$id] = str_repeat('│ ', $level) . '├ ' . $category->name;
 				if (isset($grouped_categories[$id])) {
-					$tree += static::getDropdownTree($categories, $id, $parent_key, $level + 1);
+					$tree = ArrayHelper::merge($tree, static::getDropdownTree($categories, $id, $parent_key, $level + 1));
 				}
 			}
 		}
@@ -54,9 +56,10 @@ class NestedCategoryHelper
 	}
 
 	/**
-	 * Возвращает список ID's дочерних категорий любого уровня вложенности
+	 * Возвращает список ID's всех иерархически вложенных
+	 * дочерних категорий начиная с указанной родительской
 	 *
-	 * @param ActiveRecord[] $categories
+	 * @param ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $parent_key
 	 * @return array
@@ -70,7 +73,7 @@ class NestedCategoryHelper
 	/**
 	 * Returns path to category as delimited string
 	 *
-	 * @param ActiveRecord[] $categories
+	 * @param ActiveQuery $categories
 	 * @param int $category_id
 	 * @param string $name_attribute
 	 * @param string $parent_key
@@ -79,20 +82,32 @@ class NestedCategoryHelper
 	 */
 	public static function getCategoryPath($categories, $category_id, $name_attribute='name', $parent_key='parent_id', $delimiter='/')
 	{
-		$categories_indexed = ArrayHelper::map($categories, 'id', $name_attribute);
+		$path = static::getCategoryPathArray($categories, $category_id, $parent_key);
+		$path = ArrayHelper::map($path, 'id', $name_attribute);
+		return implode($delimiter, $path);
+	}
+
+	/**
+	 * Returns path to category as array, where first element
+	 * is parent category, others is nested childs. Each element
+	 * is ActiveRecord object
+	 *
+	 * @param ActiveQuery $categories
+	 * @param int $category_id
+	 * @param string $parent_key
+	 * @return array
+	 */
+	public static function getCategoryPathArray($categories, $category_id, $parent_key='parent_id')
+	{
+		$categories = $categories->indexBy('id')->all();
 		$path = [];
-		if (isset($categories_indexed[$category_id])) {
-			$parent_id = $category_id;
+		if (isset($categories[$category_id])) {
 			do {
-				foreach ($categories_indexed as $category) {
-					if ($category['id'] == $parent_id) {
-						$path[] = $category[$name_attribute];
-						$parent_id = $category[$parent_key];
-					}
-				}
-			} while ($parent_id !== 0);
+				$path[] = $categories[$category_id];
+				$category_id = $categories[$category_id]->$parent_key;
+			} while ($category_id !== 0);
 			rsort($path);
 		}
-		return implode($delimiter, $path);
+		return $path;
 	}
 }
