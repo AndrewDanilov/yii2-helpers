@@ -32,6 +32,38 @@ class NestedCategoryHelper
 	}
 
 	/**
+	 * Возвращает псевдо-иерархический плоский список
+	 * в виде массива элементов, с указанием в каждом
+	 * id категории, уровня вложенности и модели
+	 * ActiveRecord категории. Элементы массива отсортированы
+	 * согласно их взаимной вложенности.
+	 *
+	 * @param ActiveQuery $categories
+	 * @param int $parent_id
+	 * @param string $parent_key
+	 * @param int $level
+	 * @return array
+	 */
+	public static function getPlaneTree($categories, $parent_id=0, $parent_key='parent_id', $level=0)
+	{
+		$tree = [];
+		$grouped_categories = static::getGroupedCategories($categories, $parent_key);
+		if (isset($grouped_categories[$parent_id])) {
+			foreach ($grouped_categories[$parent_id] as $id => $category) {
+				$tree[] = [
+					'id' => $id,
+					'level' => $level,
+					'category' => $category,
+				];
+				if (isset($grouped_categories[$id])) {
+					$tree = ArrayHelper::merge($tree, static::getPlaneTree($categories, $id, $parent_key, $level + 1));
+				}
+			}
+		}
+		return $tree;
+	}
+
+	/**
 	 * Возвращает псевдо-иерархический Dropdown-список
 	 * для использования в полях форм.
 	 *
@@ -39,19 +71,12 @@ class NestedCategoryHelper
 	 * @param int $parent_id
 	 * @param string $name_attribute
 	 * @param string $parent_key
-	 * @param int $level
 	 * @return array
 	 */
-	public static function getDropdownTree($categories, $parent_id=0, $name_attribute='name', $parent_key='parent_id', $level=0) {
+	public static function getDropdownTree($categories, $parent_id=0, $name_attribute='name', $parent_key='parent_id') {
 		$tree = [];
-		$grouped_categories = static::getGroupedCategories($categories, $parent_key);
-		if (isset($grouped_categories[$parent_id])) {
-			foreach ($grouped_categories[$parent_id] as $id => $category) {
-				$tree[$id] = str_repeat('│ ', $level) . '├ ' . $category->$name_attribute;
-				if (isset($grouped_categories[$id])) {
-					$tree = ArrayHelper::merge($tree, static::getDropdownTree($categories, $id, $name_attribute, $parent_key, $level + 1));
-				}
-			}
+		foreach (static::getPlaneTree($categories, $parent_id, $parent_key) as $item) {
+			$tree[$item['id']] = str_repeat('│ ', $item['level']) . '├ ' . $item['category']->$name_attribute;
 		}
 		return $tree;
 	}
