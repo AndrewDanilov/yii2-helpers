@@ -50,7 +50,7 @@ class NestedCategoryHelper
 		$grouped_categories = static::getGroupedCategories($categories, $parent_key);
 		if (isset($grouped_categories[$parent_id])) {
 			foreach ($grouped_categories[$parent_id] as $id => $category) {
-				$tree[] = [
+				$tree[$id] = [
 					'id' => $id,
 					'level' => $level,
 					'category' => $category,
@@ -92,7 +92,7 @@ class NestedCategoryHelper
 	 */
 	public static function getChildrenIds($categories, $parent_id=0, $parent_key='parent_id')
 	{
-		$tree = static::getDropdownTree($categories, $parent_id, 'id', $parent_key);
+		$tree = static::getPlaneTree($categories, $parent_id, $parent_key);
 		return array_keys($tree);
 	}
 
