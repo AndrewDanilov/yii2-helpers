@@ -132,7 +132,7 @@ class NestedCategoryHelper
 				$path[] = $categories[$category_id];
 				$category_id = $categories[$category_id]->$parent_key;
 			} while ($category_id !== 0);
-			rsort($path);
+			$path = array_reverse($path);
 		}
 		return $path;
 	}
