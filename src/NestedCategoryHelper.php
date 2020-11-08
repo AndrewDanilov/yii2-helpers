@@ -83,7 +83,8 @@ class NestedCategoryHelper
 
 	/**
 	 * Возвращает список ID's всех иерархически вложенных
-	 * дочерних категорий начиная с указанной родительской
+	 * дочерних категорий начиная с указанной родительской.
+	 * Родительская категория $parent_id в список не включается.
 	 *
 	 * @param ActiveQuery $categories
 	 * @param int $parent_id
@@ -111,6 +112,20 @@ class NestedCategoryHelper
 		$path = static::getCategoryPathArray($categories, $category_id, $parent_key);
 		$path = ArrayHelper::map($path, 'id', $name_attribute);
 		return implode($delimiter, $path);
+	}
+
+	/**
+	 * Возвращает список ID's всего пути категории до указанной дочерней
+	 *
+	 * @param ActiveQuery $categories
+	 * @param int $category_id
+	 * @param string $parent_key
+	 * @return array
+	 */
+	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id')
+	{
+		$path = static::getCategoryPathArray($categories, $category_id, $parent_key);
+		return array_keys($path);
 	}
 
 	/**
