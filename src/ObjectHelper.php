@@ -21,4 +21,27 @@ class ObjectHelper
 			}
 		}
 	}
+
+	public static function getModuleClassName($module)
+	{
+		if (is_object($module)) {
+			return $module->class;
+		}
+
+		if (is_string($module)) {
+			return $module;
+		}
+
+		if (is_array($module)) {
+			if (isset($module['__class'])) {
+				return $module['__class'];
+			}
+
+			if (isset($module['class'])) {
+				return $module['class'];
+			}
+		}
+
+		return null;
+	}
 }
