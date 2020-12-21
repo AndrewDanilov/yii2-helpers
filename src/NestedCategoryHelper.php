@@ -1,6 +1,7 @@
 <?php
 namespace andrewdanilov\helpers;
 
+use yii\db\ActiveQuery;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -11,7 +12,7 @@ class NestedCategoryHelper
 	/**
 	 * Returns hierarchical tree as multidimensional array.
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $parent_key
 	 * @param string $primary_key
@@ -19,6 +20,7 @@ class NestedCategoryHelper
 	 */
 	public static function getTree($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$grouped_categories = ArrayHelper::index($categories, $primary_key, [$parent_key]);
 		if (!empty($grouped_categories)) {
 			return static::getTreeRecursive($grouped_categories, $parent_id, $parent_key, $primary_key);
@@ -57,7 +59,7 @@ class NestedCategoryHelper
 	 * as plane array. Each element contains hierarchy
 	 * depth level along with a category array
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $parent_key
 	 * @param string $primary_key
@@ -65,6 +67,7 @@ class NestedCategoryHelper
 	 */
 	public static function getPlaneTree($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$tree = static::getTree($categories, $parent_id, $parent_key, $primary_key);
 
 		return ArrayHelper::map($tree, null, function($element) {
@@ -82,7 +85,7 @@ class NestedCategoryHelper
 	 * deph level.
 	 * Suitable for use in ActionForm.
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $name_key
 	 * @param string $parent_key
@@ -90,6 +93,7 @@ class NestedCategoryHelper
 	 * @return array
 	 */
 	public static function getDropdownTree($categories, $parent_id=0, $name_key='name', $parent_key='parent_id', $primary_key='id') {
+		$categories = static::toArray($categories);
 		$plane_tree = static::getPlaneTree($categories, $parent_id, $parent_key, $primary_key);
 		return ArrayHelper::map($plane_tree, function($element) use ($primary_key) {
 			return $element['category'][$primary_key];
@@ -103,7 +107,7 @@ class NestedCategoryHelper
 	 * child categories, starting with $parent_id.
 	 * Root parent category ID not included in the list.
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $parent_id
 	 * @param string $parent_key
 	 * @param string $primary_key
@@ -111,6 +115,7 @@ class NestedCategoryHelper
 	 */
 	public static function getChildrenIds($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$plane_tree = static::getPlaneTree($categories, $parent_id, $parent_key, $primary_key);
 		return ArrayHelper::map($plane_tree, null, function($element) use ($primary_key) {
 			return $element['category'][$primary_key];
@@ -122,7 +127,7 @@ class NestedCategoryHelper
 	 * is root parent category array, next are nested childs till needed
 	 * category
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $category_id
 	 * @param string $parent_key
 	 * @param string $primary_key
@@ -130,6 +135,7 @@ class NestedCategoryHelper
 	 */
 	public static function getCategoryPathArray($categories, $category_id, $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$categories_indexed = ArrayHelper::index($categories, $primary_key);
 		$path = [];
 		if (isset($categories_indexed[$category_id])) {
@@ -149,7 +155,7 @@ class NestedCategoryHelper
 	/**
 	 * Returns path to category as delimited string
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $category_id
 	 * @param string $delimiter
 	 * @param string $name_key
@@ -159,6 +165,7 @@ class NestedCategoryHelper
 	 */
 	public static function getCategoryPathDelimitedStr($categories, $category_id, $delimiter='/', $name_key='name', $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
 		$path = ArrayHelper::map($path, $primary_key, $name_key);
 		return implode($delimiter, $path);
@@ -167,7 +174,7 @@ class NestedCategoryHelper
 	/**
 	 * Returns ID's list of nested categories path
 	 *
-	 * @param array $categories
+	 * @param array[]|object[]|ActiveQuery $categories
 	 * @param int $category_id
 	 * @param string $parent_key
 	 * @param string $primary_key
@@ -175,6 +182,7 @@ class NestedCategoryHelper
 	 */
 	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
 		$path = ArrayHelper::map($path, null, $primary_key);
 		return $path;
@@ -193,6 +201,7 @@ class NestedCategoryHelper
 	 */
 	public static function getCategoryMenuTree($categories, $parent_id=0, $name_key='name', $parent_key='parent_id', $primary_key='id')
 	{
+		$categories = static::toArray($categories);
 		$tree = NestedCategoryHelper::getTree($categories, $parent_id, $parent_key, $primary_key);
 		return static::getWordTaxonomiesMenuTreeRecursive($tree, $name_key, $primary_key);
 	}
@@ -211,5 +220,20 @@ class NestedCategoryHelper
 			$items[] = $item;
 		}
 		return $items;
+	}
+
+	/**
+	 * Converts array of objects or ActiveQuery
+	 * to array of arrays
+	 *
+	 * @param array[]|object[]|ActiveQuery $list
+	 * @return array[]
+	 */
+	private static function toArray($list)
+	{
+		if ($list instanceof ActiveQuery) {
+			return $list->asArray()->all();
+		}
+		return ArrayHelper::toArray($list);
 	}
 }
