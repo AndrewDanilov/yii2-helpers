@@ -1,8 +1,6 @@
 <?php
 namespace andrewdanilov\helpers;
 
-use yii\db\ActiveQuery;
-use yii\db\ActiveRecord;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -10,145 +8,208 @@ use yii\helpers\ArrayHelper;
  */
 class NestedCategoryHelper
 {
-	private static $_groupedCategories = null;
-
 	/**
-	 * @param ActiveQuery $categories
+	 * Returns hierarchical tree as multidimensional array.
+	 *
+	 * @param array $categories
+	 * @param int $parent_id
 	 * @param string $parent_key
-	 * @return null
+	 * @param string $primary_key
+	 * @return array
 	 */
-	public static function getGroupedCategories($categories, $parent_key='parent_id')
+	public static function getTree($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
-		if (static::$_groupedCategories === null) {
-			$categories = $categories->indexBy('id')->all();
-			static::$_groupedCategories = [];
-			foreach ($categories as $category_id => $category) {
-				if (isset($category->$parent_key)) {
-					static::$_groupedCategories[$category->$parent_key][$category_id] = $category;
-				}
-			}
+		$grouped_categories = ArrayHelper::index($categories, $primary_key, [$parent_key]);
+		if (!empty($grouped_categories)) {
+			return static::getTreeRecursive($grouped_categories, $parent_id, $parent_key, $primary_key);
 		}
-		return static::$_groupedCategories;
+		return [];
 	}
 
 	/**
-	 * Возвращает псевдо-иерархический плоский список
-	 * в виде массива элементов, с указанием в каждом
-	 * id категории, уровня вложенности и модели
-	 * ActiveRecord категории. Элементы массива отсортированы
-	 * согласно их взаимной вложенности.
-	 *
-	 * @param ActiveQuery $categories
+	 * @param array $grouped_categories
 	 * @param int $parent_id
 	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @param int $level
 	 * @return array
 	 */
-	public static function getPlaneTree($categories, $parent_id=0, $parent_key='parent_id', $level=0)
+	private static function getTreeRecursive(&$grouped_categories, $parent_id, $parent_key, $primary_key, $level=0)
 	{
 		$tree = [];
-		$grouped_categories = static::getGroupedCategories($categories, $parent_key);
 		if (isset($grouped_categories[$parent_id])) {
 			foreach ($grouped_categories[$parent_id] as $id => $category) {
-				$tree[$id] = [
-					'id' => $id,
+				$item = [
 					'level' => $level,
 					'category' => $category,
 				];
 				if (isset($grouped_categories[$id])) {
-					$tree = ArrayHelper::merge($tree, static::getPlaneTree($categories, $id, $parent_key, $level + 1));
+					$item['items'] = static::getTreeRecursive($grouped_categories, $id, $parent_key, $primary_key, $level + 1);
 				}
+				$tree[] = $item;
 			}
 		}
 		return $tree;
 	}
 
 	/**
-	 * Возвращает псевдо-иерархический Dropdown-список
-	 * для использования в полях форм.
+	 * Returns pseudo-hierarchical list of categories
+	 * as plane array. Each element contains hierarchy
+	 * depth level along with a category array
 	 *
-	 * @param ActiveQuery $categories
+	 * @param array $categories
 	 * @param int $parent_id
-	 * @param string $name_attribute
 	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @return array
 	 */
-	public static function getDropdownTree($categories, $parent_id=0, $name_attribute='name', $parent_key='parent_id') {
-		$tree = [];
-		foreach (static::getPlaneTree($categories, $parent_id, $parent_key) as $item) {
-			$tree[$item['id']] = str_repeat('│ ', $item['level']) . '├ ' . $item['category']->$name_attribute;
-		}
-		return $tree;
+	public static function getPlaneTree($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
+	{
+		$tree = static::getTree($categories, $parent_id, $parent_key, $primary_key);
+
+		return ArrayHelper::map($tree, null, function($element) {
+			return [
+				'level' => $element['level'],
+				'category' => $element['category'],
+			];
+		});
 	}
 
 	/**
-	 * Возвращает список ID's всех иерархически вложенных
-	 * дочерних категорий начиная с указанной родительской.
-	 * Родительская категория $parent_id в список не включается.
+	 * Returns pseudo-hierarchical list of categories
+	 * as plane array. Each element contains string
+	 * padded with special symbols representing category
+	 * deph level.
+	 * Suitable for use in ActionForm.
 	 *
-	 * @param ActiveQuery $categories
+	 * @param array $categories
 	 * @param int $parent_id
+	 * @param string $name_key
 	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @return array
 	 */
-	public static function getChildrenIds($categories, $parent_id=0, $parent_key='parent_id')
+	public static function getDropdownTree($categories, $parent_id=0, $name_key='name', $parent_key='parent_id', $primary_key='id') {
+		$plane_tree = static::getPlaneTree($categories, $parent_id, $parent_key, $primary_key);
+		return ArrayHelper::map($plane_tree, function($element) use ($primary_key) {
+			return $element['category'][$primary_key];
+		}, function($element) use ($name_key) {
+			return str_repeat('│ ', $element['level']) . '├ ' . $element['category'][$name_key];
+		});
+	}
+
+	/**
+	 * Returns ID's list of all hierarchically nested
+	 * child categories, starting with $parent_id.
+	 * Root parent category ID not included in the list.
+	 *
+	 * @param array $categories
+	 * @param int $parent_id
+	 * @param string $parent_key
+	 * @param string $primary_key
+	 * @return array
+	 */
+	public static function getChildrenIds($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
-		$tree = static::getPlaneTree($categories, $parent_id, $parent_key);
-		return array_keys($tree);
+		$plane_tree = static::getPlaneTree($categories, $parent_id, $parent_key, $primary_key);
+		return ArrayHelper::map($plane_tree, null, function($element) use ($primary_key) {
+			return $element['category'][$primary_key];
+		});
+	}
+
+	/**
+	 * Returns path to category as array of elements, where first element
+	 * is root parent category array, next are nested childs till needed
+	 * category
+	 *
+	 * @param array $categories
+	 * @param int $category_id
+	 * @param string $parent_key
+	 * @param string $primary_key
+	 * @return array
+	 */
+	public static function getCategoryPathArray($categories, $category_id, $parent_key='parent_id', $primary_key='id')
+	{
+		$categories_indexed = ArrayHelper::index($categories, $primary_key);
+		$path = [];
+		if (isset($categories_indexed[$category_id])) {
+			do {
+				$path[] = $categories_indexed[$category_id];
+				if (isset($categories_indexed[$category_id][$parent_key])) {
+					$category_id = $categories_indexed[$category_id][$parent_key];
+				} else {
+					$category_id = 0;
+				}
+			} while ($category_id !== 0);
+			$path = array_reverse($path);
+		}
+		return $path;
 	}
 
 	/**
 	 * Returns path to category as delimited string
 	 *
-	 * @param ActiveQuery $categories
+	 * @param array $categories
 	 * @param int $category_id
-	 * @param string $name_attribute
-	 * @param string $parent_key
 	 * @param string $delimiter
+	 * @param string $name_key
+	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @return string
 	 */
-	public static function getCategoryPath($categories, $category_id, $name_attribute='name', $parent_key='parent_id', $delimiter='/')
+	public static function getCategoryPathDelimitedStr($categories, $category_id, $delimiter='/', $name_key='name', $parent_key='parent_id', $primary_key='id')
 	{
-		$path = static::getCategoryPathArray($categories, $category_id, $parent_key);
-		$path = ArrayHelper::map($path, 'id', $name_attribute);
+		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
+		$path = ArrayHelper::map($path, $primary_key, $name_key);
 		return implode($delimiter, $path);
 	}
 
 	/**
-	 * Возвращает список ID's всего пути категории до указанной дочерней
+	 * Returns ID's list of nested categories path
 	 *
-	 * @param ActiveQuery $categories
+	 * @param array $categories
 	 * @param int $category_id
 	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @return array
 	 */
-	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id')
+	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id', $primary_key='id')
 	{
-		$path = static::getCategoryPathArray($categories, $category_id, $parent_key);
-		return array_keys($path);
+		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
+		$path = ArrayHelper::map($path, null, $primary_key);
+		return $path;
 	}
 
 	/**
-	 * Returns path to category as array, where first element
-	 * is parent category, others is nested childs. Each element
-	 * is ActiveRecord object
+	 * Creates categories multidimensional array
+	 * suitable for use in \yii\widgets\Menu widget
 	 *
-	 * @param ActiveQuery $categories
-	 * @param int $category_id
+	 * @param $categories
+	 * @param int $parent_id
+	 * @param string $name_key
 	 * @param string $parent_key
+	 * @param string $primary_key
 	 * @return array
 	 */
-	public static function getCategoryPathArray($categories, $category_id, $parent_key='parent_id')
+	public static function getCategoryMenuTree($categories, $parent_id=0, $name_key='name', $parent_key='parent_id', $primary_key='id')
 	{
-		$categories = $categories->indexBy('id')->all();
-		$path = [];
-		if (isset($categories[$category_id])) {
-			do {
-				$path[] = $categories[$category_id];
-				$category_id = $categories[$category_id]->$parent_key;
-			} while ($category_id !== 0);
-			$path = array_reverse($path);
+		$tree = NestedCategoryHelper::getTree($categories, $parent_id, $parent_key, $primary_key);
+		return static::getWordTaxonomiesMenuTreeRecursive($tree, $name_key, $primary_key);
+	}
+
+	private static function getWordTaxonomiesMenuTreeRecursive($tree, $name_key, $primary_key)
+	{
+		$items = [];
+		foreach ($tree as $tree_item) {
+			$item = [
+				'label' => $tree_item['category'][$name_key],
+				'url' => ['/site/words', 'type' => $tree_item['category'][$primary_key]],
+			];
+			if (!empty($tree_item['items'])) {
+				$item['items'] = static::getWordTaxonomiesMenuTreeRecursive($tree_item['items'], $name_key, $primary_key);
+			}
+			$items[] = $item;
 		}
-		return $path;
+		return $items;
 	}
 }
