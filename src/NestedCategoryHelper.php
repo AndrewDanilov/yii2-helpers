@@ -146,7 +146,7 @@ class NestedCategoryHelper
 				} else {
 					$category_id = 0;
 				}
-			} while ($category_id !== 0);
+			} while (!empty($category_id));
 			$path = array_reverse($path);
 		}
 		return $path;
