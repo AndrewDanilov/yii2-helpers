@@ -149,9 +149,7 @@ class NestedCategoryHelper
 	public static function getChildrenIds($categories, $parent_id=0, $parent_key='parent_id', $primary_key='id')
 	{
 		$plane_tree = static::getPlaneTree($categories, $parent_id, $parent_key, $primary_key);
-		return ArrayHelper::map($plane_tree, null, function($element) use ($primary_key) {
-			return $element['category'][$primary_key];
-		});
+		return ArrayHelper::getColumn($plane_tree, 'category.' . $primary_key);
 	}
 
 	/**
@@ -214,7 +212,7 @@ class NestedCategoryHelper
 	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id', $primary_key='id')
 	{
 		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
-		$path = ArrayHelper::map($path, null, $primary_key);
+		$path = ArrayHelper::getColumn($path, $primary_key);
 		return $path;
 	}
 
