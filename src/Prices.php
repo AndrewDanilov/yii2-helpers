@@ -9,7 +9,6 @@ class Prices
 		if ($format) {
 			$result = number_format($result, 2, '.', ' ');
 		}
-		$result = preg_replace('/\.0+$/', '', $result);
-		return $result;
+		return preg_replace('/\.0+$/', '', $result);
 	}
 }

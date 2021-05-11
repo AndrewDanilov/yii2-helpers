@@ -2,7 +2,6 @@
 namespace andrewdanilov\helpers;
 
 use Yii;
-use mihaildev\elfinder\ElFinder;
 
 class CKEditorHelper
 {

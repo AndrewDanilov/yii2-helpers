@@ -212,8 +212,7 @@ class NestedCategoryHelper
 	public static function getCategoryPathIds($categories, $category_id, $parent_key='parent_id', $primary_key='id')
 	{
 		$path = static::getCategoryPathArray($categories, $category_id, $parent_key, $primary_key);
-		$path = ArrayHelper::getColumn($path, $primary_key);
-		return $path;
+		return ArrayHelper::getColumn($path, $primary_key);
 	}
 
 	/**
@@ -225,6 +224,9 @@ class NestedCategoryHelper
 	 * @param string $name_key
 	 * @param string $parent_key
 	 * @param string $primary_key
+	 * @param string $url_path
+	 * @param string $url_param_name
+	 * @param string $url_param_attribute
 	 * @return array
 	 */
 	public static function getCategoryMenuTree($categories, $parent_id=0, $name_key='name', $parent_key='parent_id', $primary_key='id', $url_path='/site/index', $url_param_name='id', $url_param_attribute='id')

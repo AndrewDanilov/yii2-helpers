@@ -1,7 +1,6 @@
 <?php
 namespace andrewdanilov\helpers;
 
-
 use yii\helpers\StringHelper;
 
 class TextHelper
