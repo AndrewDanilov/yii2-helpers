@@ -20,11 +20,11 @@ class TextHelper
 			foreach ($paragraphs as $paragraph) {
 				$words_count = preg_match_all('~[\p{L}\'\-\xC2\xAD]+~u', trim(strip_tags($paragraph)));
 				$total_words_count += $words_count;
-				if ($total_words_count < $trim_words_count) {
+				if ($total_words_count <= $trim_words_count) {
 					$text .= '<p>' . $paragraph . '</p>';
 				} else {
 					$diff = $total_words_count - $trim_words_count;
-					if ($diff > 0) {
+					if ($words_count - $diff > 0) {
 						$text .= '<p>' . StringHelper::truncateWords($paragraph, $words_count - $diff, $suffix, true) . '</p>';
 					}
 					break;
