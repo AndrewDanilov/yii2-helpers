@@ -75,3 +75,15 @@ public function setAttributes($values, $safeOnly = true)
 
 Правило `ModelHelper::ATTR_RULE_HTML_SPECIAL_CHARS` заменит в значении атрибута
 все html сущности на их &-эквиваленты с помощью функции `htmlspecialchars()`.
+
+
+__ModelHelper::getFirstError()__
+
+Возвращает первую ошибку, возникшую в модели в виде строки или пустую строку, если ошибок нет.
+
+```php
+$model = new MyModel();
+$model->some_attr = 'some_wrong_value';
+$model->validate();
+echo \andrewdanilov\helpers\ModelHelper::getFirstError($model);
+```

@@ -1,6 +1,8 @@
 <?php
 namespace andrewdanilov\helpers;
 
+use yii\base\Model;
+
 class ModelHelper
 {
     const ATTR_RULE_CLEAN_JS = 10;
@@ -82,5 +84,24 @@ class ModelHelper
             }
         }
         return $value;
+    }
+
+    /**
+     * Возвращает первую ошибку, возникшую в модели в виде строки
+     * или пустую строку, если ошибок нет.
+     *
+     * @param Model $model
+     * @return string
+     */
+    public static function getFirstError(Model $model): string
+    {
+        $errors = $model->getErrors();
+        if (!empty($errors)) {
+            $first_attribute_errors = reset($errors);
+            if (!empty($first_attribute_errors)) {
+                return reset($first_attribute_errors);
+            }
+        }
+        return '';
     }
 }
