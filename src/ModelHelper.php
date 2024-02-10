@@ -58,7 +58,7 @@ class ModelHelper
                 $values[$name] = $value;
             }
         }
-    	return $values;
+        return $values;
     }
 
     protected static function applyCleanRulesToValue($value, $rules)
@@ -79,8 +79,8 @@ class ModelHelper
                 }
             }
         } elseif (is_array($value)) {
-            foreach ($value as $value_item) {
-                static::applyCleanRulesToValue($value_item, $rules);
+            foreach ($value as $key => $value_item) {
+                $value[$key] = static::applyCleanRulesToValue($value_item, $rules);
             }
         }
         return $value;
