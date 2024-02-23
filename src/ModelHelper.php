@@ -67,8 +67,8 @@ class ModelHelper
             foreach ($rules as $rule) {
                 switch ($rule) {
                     case static::ATTR_RULE_CLEAN_JS:
-                        $value = preg_replace('~<script[^>]*>.*</script[^>]*>~Ui', '', $value);
-                        $value = preg_replace('~<script[^>]*>~Ui', '', $value);
+                        $value = preg_replace('~<script[^>]*>.*</script[^>]*>~Usi', '', $value);
+                        $value = preg_replace('~<script[^>]*>~Usi', '', $value);
                         break;
                     case static::ATTR_RULE_STRIP_TAGS:
                         $value = strip_tags($value);
